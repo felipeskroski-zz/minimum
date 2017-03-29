@@ -1,0 +1,30 @@
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /rot13/.*
+  script: main.app
+- url: /signup.*
+  script: signup.app
+- url: /login*
+  script: signup.app
+- url: /logout*
+  script: signup.app
+- url: /ascii/.*
+  script: ascii_chan.app
+- url: /blog.*
+  script: blog.app
+- url: /
+  script: blog.app
+- url: /cookies.*
+  script: cookies.app
+
+
+libraries:
+- name: jinja2
+  version: latest
+- name: markupsafe
+  version: "0.15"
+- name: webapp2
+  version: latest

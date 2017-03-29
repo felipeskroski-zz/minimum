@@ -1,0 +1,22 @@
+<h2>Login</h2>
+<form method="post">
+  <p>
+    <label>
+      Username
+      <input name="username" type="text" {% if username%} value={{username}} {% endif %}/>
+      {% if errors %}
+        <span style="color:red;">{{errors['username']}}</span>
+      {% endif %}
+    </label>
+  </p>
+  <p>
+    <label>
+      Password
+      <input name="password" type="password"/>
+      {% if errors %}
+        <span style="color:red;">{{errors['password']}}</span>
+      {% endif %}
+    </label>
+  </p>
+  <input type="submit"/>
+</form>
