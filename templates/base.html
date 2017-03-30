@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link type="text/css" rel="stylesheet" href="/static/main.css" />
+
+  <title>Minimum</title>
+</head>
+
+<body>
+  <a href="/blog" class="main-title">
+    Minimum
+  </a>
+
+  <div class="login-area">
+    {% if user %}
+      {{user.name}} (<a class="login-link" href="/logout">Logout</a>)
+    {% else %}
+      <a class="login-link" href="/login">Login</a>
+      |
+      <a class="login-link" href="/signup">Signup</a>
+    {% endif %}
+    | <a class="login-link" href="/blog/newpost">New post</a>
+  </div>
+
+  <div id="content">
+  {% block content %}
+  {% endblock %}
+  </div>
+</body>
+
+</html>

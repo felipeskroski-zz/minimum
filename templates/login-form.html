@@ -1,0 +1,52 @@
+{% extends "base-form.html" %}
+{% block content %}
+    <h2>Login</h2>
+    <form method="post">
+      <table>
+        <tr>
+          <td class="label">
+            Username
+          </td>
+          <td>
+            <input type="text" name="username" value="{{username}}">
+          </td>
+        </tr>
+
+        <tr>
+          <td class="label">
+            Password
+          </td>
+          <td>
+            <input type="password" name="password" value="">
+          </td>
+        </tr>
+        <tr>
+          <td>
+
+          </td>
+          <td>
+            <div class="error">
+              {{error}}
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+
+          </td>
+          <td>
+            <input type="submit">
+          </td>
+        </tr>
+
+      </table>
+
+
+
+
+    </form>
+    <p class="form-link">
+      Don't have an account? <a href="/signup"> Signup</a>
+    </p>
+
+{% endblock %}

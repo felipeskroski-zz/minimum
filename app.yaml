@@ -1,30 +1,19 @@
+application: udacity-cs253
+version: 1
 runtime: python27
 api_version: 1
 threadsafe: true
 
 handlers:
-- url: /rot13/.*
-  script: main.app
-- url: /signup.*
-  script: signup.app
-- url: /login*
-  script: signup.app
-- url: /logout*
-  script: signup.app
-- url: /ascii/.*
-  script: ascii_chan.app
-- url: /blog.*
-  script: blog.app
-- url: /
-  script: blog.app
-- url: /cookies.*
-  script: cookies.app
+- url: /static
+  static_dir: static
 
+- url: /.*
+  script: blog.app
 
 libraries:
 - name: jinja2
   version: latest
-- name: markupsafe
-  version: "0.15"
-- name: webapp2
-  version: latest
+
+- name: PIL
+  version: "1.1.7"
