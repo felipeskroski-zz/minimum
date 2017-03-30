@@ -4,7 +4,9 @@
       <a href=/blog/{{p.key().id()}}>{{p.subject}}</a>
 
     </div>
-    <a href=/blog/edit/{{p.key().id()}}>edit</a>
+    {% if is_author %}
+        <a href=/blog/edit/{{p.key().id()}}>edit</a>
+    {% endif %}
 
     <div class="post-date">
       {{p.created.strftime("%b %d, %Y")}}

@@ -34,11 +34,15 @@ def make_secure_val(val):
     """Creates secure token"""
     return '%s|%s' % (val, hmac.new(secret, val).hexdigest())
 
+
 def check_secure_val(secure_val):
     """Reads secure token and checks if is valid"""
     val = secure_val.split('|')[0]
     if secure_val == make_secure_val(val):
         return val
+
+
+
 
 
 class BlogHandler(webapp2.RequestHandler):
@@ -106,6 +110,8 @@ def users_key(group='default'):
     return db.Key.from_path('users', group)
 
 
+
+
 class User(db.Model):
     name = db.StringProperty(required=True)
     pw_hash = db.StringProperty(required=True)
@@ -137,34 +143,35 @@ class User(db.Model):
 
 # blog stuff
 
-def blog_key(name='default'):
-    return db.Key.from_path('blogs', name)
-
 
 class Post(db.Model):
     subject = db.StringProperty(required=True)
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
+    author_id = db.StringProperty(required=True)
     last_modified = db.DateTimeProperty(auto_now=True)
 
-    def render(self):
-        self._render_text = self.content.replace('\n', '<br>')
-        return render_str("post.html", p=self)
+    def is_author(self, user):
+        if not user:
+            return None
+        if str(user.key().id()) == str(self.author_id):
+            return True
 
-    @classmethod
-    def by_id(cls, pid):
-        return Post.get_by_id(pid)
+    def render(self, user=None):
+        self._render_text = self.content.replace('\n', '<br>')
+        is_author = self.is_author(user)
+        return render_str("post.html", p=self, is_author=is_author)
 
 
 class BlogFront(BlogHandler):
     def get(self):
         posts = greetings = Post.all().order('-created')
-        self.render('front.html', posts=posts)
+        self.render('front.html', posts=posts, user=self.user)
 
 
 class PostPage(BlogHandler):
     def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        key = db.Key.from_path('Post', int(post_id))
         post = db.get(key)
 
         if not post:
@@ -187,9 +194,9 @@ class NewPost(BlogHandler):
 
         subject = self.request.get('subject')
         content = self.request.get('content')
-
+        uid = str(self.user.key().id())
         if subject and content:
-            p = Post(parent=blog_key(), subject=subject, content=content)
+            p = Post(subject=subject, content=content, author_id=uid)
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
@@ -202,13 +209,17 @@ class NewPost(BlogHandler):
 class EditPost(BlogHandler):
     def get(self, post_id):
         if self.user:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            key = db.Key.from_path('Post', int(post_id))
             post = db.get(key)
-            subject = post.subject
-            content = post.content
-            self.render(
-                "newpost.html", subject=subject,
-                content=content)
+            uid = str(self.user.key().id())
+            if(post.author_id == uid):
+                subject = post.subject
+                content = post.content
+                self.render(
+                    "newpost.html", subject=subject,
+                    content=content)
+            else:
+                self.redirect("/login")
         else:
             self.redirect("/login")
 
@@ -216,7 +227,7 @@ class EditPost(BlogHandler):
         if not self.user:
             self.redirect('/blog')
 
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        key = db.Key.from_path('Post', int(post_id))
         p = db.get(key)
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -227,7 +238,7 @@ class EditPost(BlogHandler):
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
-            error = "Add the subject and content, please!"
+            error = "Add subject and content, please!"
             self.render(
                 "newpost.html", subject=subject,
                 content=content, error=error)
