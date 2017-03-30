@@ -150,6 +150,7 @@ class Post(db.Model):
     created = db.DateTimeProperty(auto_now_add=True)
     author_id = db.StringProperty(required=True)
     last_modified = db.DateTimeProperty(auto_now=True)
+    likes = db.ListProperty(db.Key)
 
     def is_author(self, user):
         if not user:
@@ -157,10 +158,19 @@ class Post(db.Model):
         if str(user.key().id()) == str(self.author_id):
             return True
 
+    def is_liked(self, user):
+        if not user:
+            return None
+        if user.key() in self.likes:
+            return True
+
     def render(self, user=None):
         self._render_text = self.content.replace('\n', '<br>')
-        is_author = self.is_author(user)
-        return render_str("post.html", p=self, is_author=is_author)
+        if self.is_liked(user):
+            return render_str("post.html", p=self, is_liked=True)
+        if self.is_author(user):
+            return render_str("post.html", p=self, is_author=True)
+        return render_str("post.html", p=self)
 
 
 class BlogFront(BlogHandler):
@@ -184,14 +194,13 @@ class PostPage(BlogHandler):
 class NewPost(BlogHandler):
     def get(self):
         if self.user:
-            self.render("newpost.html")
+            self.render("newpost.html", title="New Post")
         else:
             self.redirect("/login")
 
     def post(self):
         if not self.user:
             self.redirect('/blog')
-
         subject = self.request.get('subject')
         content = self.request.get('content')
         uid = str(self.user.key().id())
@@ -203,7 +212,7 @@ class NewPost(BlogHandler):
             error = "subject and content, please!"
             self.render(
                 "newpost.html", subject=subject,
-                content=content, error=error)
+                content=content, error=error, title="New Post")
 
 
 class EditPost(BlogHandler):
@@ -211,37 +220,64 @@ class EditPost(BlogHandler):
         if self.user:
             key = db.Key.from_path('Post', int(post_id))
             post = db.get(key)
-            uid = str(self.user.key().id())
-            if(post.author_id == uid):
-                subject = post.subject
-                content = post.content
+            subject = post.subject
+            content = post.content
+            if(post.is_author(self.user)):
                 self.render(
                     "newpost.html", subject=subject,
-                    content=content)
+                    content=content, title="Edit Post")
             else:
-                self.redirect("/login")
+                self.render(
+                    "newpost.html", subject=subject,
+                    content=content, title="Edit Post",
+                    error="Sorry only the author can edit this post")
         else:
             self.redirect("/login")
 
     def post(self, post_id):
         if not self.user:
             self.redirect('/blog')
-
         key = db.Key.from_path('Post', int(post_id))
         p = db.get(key)
         subject = self.request.get('subject')
         content = self.request.get('content')
-
-        if subject and content:
-            p.subject = subject
-            p.content = content
-            p.put()
-            self.redirect('/blog/%s' % str(p.key().id()))
+        if(p.is_author(self.user)):
+            if subject and content:
+                p.subject = subject
+                p.content = content
+                p.put()
+                self.redirect('/blog/%s' % str(p.key().id()))
+            else:
+                error = "Add subject and content, please!"
+                self.render(
+                    "newpost.html", subject=subject,
+                    content=content, error=error, title="Edit Post")
         else:
-            error = "Add subject and content, please!"
+            error = "And you're not the author"
             self.render(
                 "newpost.html", subject=subject,
-                content=content, error=error)
+                content=content, error=error, title="Edit Post")
+
+
+class LikePost(BlogHandler):
+    def get(self, post_id):
+        # if there's no user logged don't like
+        if not self.user:
+            self.redirect('/blog')
+        key = db.Key.from_path('Post', int(post_id))
+        p = db.get(key)
+        # if user is the author it can't like
+        if(p.is_author(self.user)):
+            self.redirect('/blog')
+        ukey = self.user.key()
+        # toggle like on/off
+        if ukey in p.likes:
+            p.likes.remove(ukey)
+            p.put()
+        else:
+            p.likes.append(ukey)
+            p.put()
+        self.redirect('/blog')
 
 
 def valid_username(username):
@@ -351,6 +387,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/([0-9]+)', PostPage),
                                ('/blog/newpost', NewPost),
                                ('/blog/edit/([0-9]+)', EditPost),
+                               ('/blog/like/([0-9]+)', LikePost),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),

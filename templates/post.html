@@ -5,8 +5,15 @@
 
     </div>
     {% if is_author %}
-        <a href=/blog/edit/{{p.key().id()}}>edit</a>
+      <a href=/blog/edit/{{p.key().id()}}>edit</a>
+    {% else %}
+      {% if is_liked %}
+        <a href=/blog/like/{{p.key().id()}}>dislike</a>
+      {% else %}
+        <a href=/blog/like/{{p.key().id()}}>like</a>
+      {% endif %}
     {% endif %}
+      likes:{{p.likes|length}}
 
     <div class="post-date">
       {{p.created.strftime("%b %d, %Y")}}
