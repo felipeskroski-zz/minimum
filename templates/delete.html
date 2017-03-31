@@ -1,13 +1,5 @@
+{% extends "base.html" %}
 
-<!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="refresh" content="0; URL='/blog'" />
-  <title>Minimum</title>
-</head>
-
-<body>
-  Deleting...
-</body>
-
-</html>
+{% block content %}
+  {{post.render(user,error) | safe}}
+{% endblock %}

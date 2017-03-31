@@ -167,14 +167,17 @@ class Post(db.Model):
         if user.key() in self.likes:
             return True
 
-    def render(self, user=None):
+    def render(self, user=None, error=None):
         self._render_text = self.content.replace('\n', '<br>')
         if self.is_liked(user):
-            return render_str("post.html", p=self, is_liked=True, is_logged=True)
+            return render_str(
+                "post.html", p=self,
+                is_liked=True, is_logged=True, error=error)
         if self.is_author(user):
             return render_str("post.html", p=self, is_author=True, is_logged=True)
         if user:
-            return render_str("post.html", p=self, is_logged=True)
+            return render_str(
+                "post.html", p=self, is_logged=True, error=error)
         return render_str("post.html", p=self)
 
 
@@ -266,7 +269,8 @@ class DeletePost(BlogHandler):
             post.delete()
             self.redirect('/')
         else:
-            self.redirect('/')
+            error = "Only the author can delete the post"
+            self.render("delete.html", post=post, error=error, user=self.user)
 
 
 class LikePost(BlogHandler):
