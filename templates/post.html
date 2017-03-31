@@ -1,8 +1,7 @@
 <div class="post" id={{p.key().id()}}>
   <div class="post-heading">
-    Logged:{{is_logged}} | Author:{{is_author}} | like:{{is_liked}}
     <div class="post-title">
-      <a href=/blog/{{p.key().id()}}>{{p.subject}}</a>
+      <a href=/{{p.key().id()}}>{{p.subject}}</a>
 
       {% if is_logged %}
         {% if is_author %}
@@ -12,13 +11,13 @@
         {% else %}
           {% if is_liked %}
             <span class="like">
-              <a href=/blog/like/{{p.key().id()}}>
+              <a href=/like/{{p.key().id()}}>
                 <img src="/static/liked.svg" />{{p.likes|length}}
               </a>
             </span>
           {% else %}
             <span class="like">
-              <a href=/blog/like/{{p.key().id()}}>
+              <a href=/like/{{p.key().id()}}>
                 <img src="/static/like.svg" />{{p.likes|length}}
               </a>
             </span>
@@ -43,8 +42,8 @@
   </div>
   {% if is_author %}
     <div class="form-inline">
-        <a href=/blog/edit/{{p.key().id()}} class="edit">edit</a>
-        <a href=/blog/delete/{{p.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
+        <a href=/edit/{{p.key().id()}} class="edit">edit</a>
+        <a href=/delete/{{p.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
     </div>
   {% endif %}
 </div>

@@ -85,11 +85,6 @@ def render_post(response, post):
     response.out.write(post.content)
 
 
-class MainPage(BlogHandler):
-    def get(self):
-        self.write('Hello, Udacity!')
-
-
 def make_salt(length=5):
     return ''.join(random.choice(letters) for x in xrange(length))
 
@@ -144,6 +139,14 @@ class User(db.Model):
 def blog_key(name='default'):
     return db.Key.from_path('blogs', name)
 
+def get_post_by_id(post_id):
+    key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+    post = db.get(key)
+    if not post:
+        self.error(404)
+        return
+    return post
+
 class Post(db.Model):
     subject = db.StringProperty(required=True)
     content = db.TextProperty(required=True)
@@ -177,20 +180,15 @@ class Post(db.Model):
 
 class BlogFront(BlogHandler):
     def get(self):
+        # adds strong consistency support to make sure the data is the latest
         posts = Post.all().ancestor(blog_key())
         self.render('front.html', posts=posts, user=self.user)
 
 
 class PostPage(BlogHandler):
     def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
-
-        if not post:
-            self.error(404)
-            return
-
-        self.render("permalink.html", post=post)
+        post = get_post_by_id(int(post_id))
+        self.render("permalink.html", post=post, user=self.user)
 
 
 class NewPost(BlogHandler):
@@ -202,14 +200,16 @@ class NewPost(BlogHandler):
 
     def post(self):
         if not self.user:
-            self.redirect('/blog')
+            self.redirect('/')
         subject = self.request.get('subject')
         content = self.request.get('content')
         uid = str(self.user.key().id())
         if subject and content:
-            p = Post(parent = blog_key(), subject=subject, content=content, author_id=uid)
+            p = Post(
+                parent=blog_key(), subject=subject,
+                content=content, author_id=uid)
             p.put()
-            self.redirect('/blog/%s' % str(p.key().id()))
+            self.redirect('/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
             self.render(
@@ -220,8 +220,7 @@ class NewPost(BlogHandler):
 class EditPost(BlogHandler):
     def get(self, post_id):
         if self.user:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
+            post = get_post_by_id(int(post_id))
             subject = post.subject
             content = post.content
             if(post.is_author(self.user)):
@@ -238,9 +237,8 @@ class EditPost(BlogHandler):
 
     def post(self, post_id):
         if not self.user:
-            self.redirect('/blog')
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
+            self.redirect('/')
+        post = get_post_by_id(int(post_id))
         subject = self.request.get('subject')
         content = self.request.get('content')
         if(post.is_author(self.user)):
@@ -248,7 +246,7 @@ class EditPost(BlogHandler):
                 post.subject = subject
                 post.content = content
                 post.put()
-                self.redirect('/blog/%s' % str(post.key().id()))
+                self.redirect('/%s' % str(post.key().id()))
             else:
                 error = "Add subject and content, please!"
                 self.render(
@@ -263,25 +261,23 @@ class EditPost(BlogHandler):
 
 class DeletePost(BlogHandler):
     def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
+        post = get_post_by_id(int(post_id))
         if post.is_author(self.user):
             post.delete()
-            self.redirect('/blog')
+            self.redirect('/')
         else:
-            self.redirect('/blog')
+            self.redirect('/')
 
 
 class LikePost(BlogHandler):
     def get(self, post_id):
         # if there's no user logged don't like
         if not self.user:
-            self.redirect('/blog')
-        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-        post = db.get(key)
+            self.redirect('/')
+        post = get_post_by_id(int(post_id))
         # if user is the author it can't like
         if(post.is_author(self.user)):
-            self.redirect('/blog')
+            self.redirect('/')
         ukey = self.user.key()
         # toggle like on/off
         if ukey in post.likes:
@@ -290,7 +286,7 @@ class LikePost(BlogHandler):
         else:
             post.likes.append(ukey)
             post.put()
-        self.redirect('/blog')
+        self.redirect('/')
 
 
 def valid_username(username):
@@ -343,11 +339,6 @@ class Signup(BlogHandler):
         raise NotImplementedError
 
 
-class Unit2Signup(Signup):
-    def done(self):
-        self.redirect('/unit2/welcome?username=' + self.username)
-
-
 class Register(Signup):
     def done(self):
         # make sure the user doesn't already exist
@@ -360,7 +351,7 @@ class Register(Signup):
             u.put()
 
             self.login(u)
-            self.redirect('/blog')
+            self.redirect('/')
 
 
 class Login(BlogHandler):
@@ -374,7 +365,7 @@ class Login(BlogHandler):
         u = User.login(username, password)
         if u:
             self.login(u)
-            self.redirect('/blog')
+            self.redirect('/')
         else:
             msg = 'Invalid login'
             self.render('login-form.html', error=msg)
@@ -383,7 +374,7 @@ class Login(BlogHandler):
 class Logout(BlogHandler):
     def get(self):
         self.logout()
-        self.redirect('/blog')
+        self.redirect('/')
 
 
 class Welcome(BlogHandler):
@@ -394,14 +385,13 @@ class Welcome(BlogHandler):
             self.redirect('/signup')
 
 
-app = webapp2.WSGIApplication([('/', MainPage),
-                               ('/unit2/signup', Unit2Signup),
-                               ('/blog/?', BlogFront),
-                               ('/blog/([0-9]+)', PostPage),
-                               ('/blog/newpost', NewPost),
-                               ('/blog/edit/([0-9]+)', EditPost),
-                               ('/blog/like/([0-9]+)', LikePost),
-                               ('/blog/delete/([0-9]+)', DeletePost),
+app = webapp2.WSGIApplication([
+                               ('/?', BlogFront),
+                               ('/([0-9]+)', PostPage),
+                               ('/newpost', NewPost),
+                               ('/edit/([0-9]+)', EditPost),
+                               ('/like/([0-9]+)', LikePost),
+                               ('/delete/([0-9]+)', DeletePost),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
