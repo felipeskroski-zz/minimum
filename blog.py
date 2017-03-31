@@ -173,7 +173,7 @@ class Post(db.Model):
             return render_str(
                 "post.html", p=self, is_author=True,
                 is_logged=True, error=error)
-            
+
         if self.is_liked(user):
             return render_str(
                 "post.html", p=self,
@@ -234,10 +234,9 @@ class EditPost(BlogHandler):
                     "newpost.html", subject=subject,
                     content=content, title="Edit Post")
             else:
+                error = "Sorry only the author can edit this post"
                 self.render(
-                    "newpost.html", subject=subject,
-                    content=content, title="Edit Post",
-                    error="Sorry only the author can edit this post")
+                    "permalink.html", post=post, error=error, user=self.user)
         else:
             self.redirect("/login")
 
@@ -260,9 +259,7 @@ class EditPost(BlogHandler):
                     content=content, error=error, title="Edit Post")
         else:
             error = "And you're not the author"
-            self.render(
-                "newpost.html", subject=subject,
-                content=content, error=error, title="Edit Post")
+            self.redirect('/')
 
 
 class DeletePost(BlogHandler):
@@ -273,7 +270,8 @@ class DeletePost(BlogHandler):
             self.redirect('/')
         else:
             error = "Only the author can delete the post"
-            self.render("permalink.html", post=post, error=error, user=self.user)
+            self.render(
+                "permalink.html", post=post, error=error, user=self.user)
 
 
 class LikePost(BlogHandler):
