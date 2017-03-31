@@ -42,9 +42,6 @@ def check_secure_val(secure_val):
         return val
 
 
-
-
-
 class BlogHandler(webapp2.RequestHandler):
     """Base blog class with useful generic methods"""
     def write(self, *a, **kw):
@@ -93,7 +90,6 @@ class MainPage(BlogHandler):
         self.write('Hello, Udacity!')
 
 
-# user stuff
 def make_salt(length=5):
     return ''.join(random.choice(letters) for x in xrange(length))
 
@@ -112,7 +108,6 @@ def valid_pw(name, password, h):
 
 def users_key(group='default'):
     return db.Key.from_path('users', group)
-
 
 
 
@@ -171,10 +166,12 @@ class Post(db.Model):
     def render(self, user=None):
         self._render_text = self.content.replace('\n', '<br>')
         if self.is_liked(user):
-            return render_str("post.html", p=self, is_liked=True, user=True)
+            return render_str("post.html", p=self, is_liked=True, is_logged=True)
         if self.is_author(user):
-            return render_str("post.html", p=self, is_author=True, user=True)
-        return render_str("post.html", p=self, user=False)
+            return render_str("post.html", p=self, is_author=True, is_logged=True)
+        if user:
+            return render_str("post.html", p=self, is_logged=True)
+        return render_str("post.html", p=self)
 
 
 class BlogFront(BlogHandler):
@@ -185,8 +182,7 @@ class BlogFront(BlogHandler):
 
 class PostPage(BlogHandler):
     def get(self, post_id):
-        key = db.Key.from_path('Post', int(post_id))
-        post = db.get(key)
+        post = Post.get_by_id(int(post_id))
 
         if not post:
             self.error(404)
@@ -222,8 +218,7 @@ class NewPost(BlogHandler):
 class EditPost(BlogHandler):
     def get(self, post_id):
         if self.user:
-            key = db.Key.from_path('Post', int(post_id))
-            post = db.get(key)
+            post = Post.get_by_id(int(post_id))
             subject = post.subject
             content = post.content
             if(post.is_author(self.user)):
@@ -241,8 +236,7 @@ class EditPost(BlogHandler):
     def post(self, post_id):
         if not self.user:
             self.redirect('/blog')
-        key = db.Key.from_path('Post', int(post_id))
-        p = db.get(key)
+        p = Post.get_by_id(int(post_id))
         subject = self.request.get('subject')
         content = self.request.get('content')
         if(p.is_author(self.user)):
@@ -262,6 +256,7 @@ class EditPost(BlogHandler):
                 "newpost.html", subject=subject,
                 content=content, error=error, title="Edit Post")
 
+
 class DeletePost(BlogHandler):
     def get(self, post_id):
         p = Post.get_by_id(int(post_id))
@@ -271,13 +266,13 @@ class DeletePost(BlogHandler):
         else:
             self.redirect('/blog')
 
+
 class LikePost(BlogHandler):
     def get(self, post_id):
         # if there's no user logged don't like
         if not self.user:
             self.redirect('/blog')
-        key = db.Key.from_path('Post', int(post_id))
-        p = db.get(key)
+        p = Post.get_by_id(int(post_id))
         # if user is the author it can't like
         if(p.is_author(self.user)):
             self.redirect('/blog')

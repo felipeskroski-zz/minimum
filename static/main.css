@@ -98,6 +98,8 @@ input[type=submit] {
 .post-date {
     color: #999;
     display: inline-block;
+    margin-top: 5px;
+    text-transform: uppercase;
 }
 .like {
     font-size: 20px;
@@ -112,7 +114,7 @@ input[type=submit] {
 }
 
 .post-content {
-    margin-top: 5px;
+    margin-top: 0px;
     margin-bottom: 10px;
     font-size: 18px;
     line-height: 1.5em;

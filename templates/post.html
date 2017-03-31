@@ -1,17 +1,19 @@
 <div class="post" id={{p.key().id()}}>
   <div class="post-heading">
+    Logged:{{is_logged}} | Author:{{is_author}} | like:{{is_liked}}
     <div class="post-title">
       <a href=/blog/{{p.key().id()}}>{{p.subject}}</a>
-      {% if user %}
+
+      {% if is_logged %}
         {% if is_author %}
           <span class="like">
-            <img src="/static/liked.svg"/>{{p.likes|length}}
+            <img src="/static/like-disabled.svg" />{{p.likes|length}}
           </span>
         {% else %}
           {% if is_liked %}
             <span class="like">
               <a href=/blog/like/{{p.key().id()}}>
-                <img src="/static/liked.svg"/>{{p.likes|length}}
+                <img src="/static/liked.svg" />{{p.likes|length}}
               </a>
             </span>
           {% else %}
@@ -24,14 +26,14 @@
         {% endif %}
       {% else %}
         <span class="like">
-          <img src="/static/liked.svg" height="15px"/>{{p.likes|length}}
+          <img src="/static/like-disabled.svg" />{{p.likes|length}}
         </span>
       {% endif %}
     </div>
 
 
     <div class="post-date">
-      {{p.created.strftime("%b %d, %Y")}}
+      {{p.created.strftime("%d %b %Y")}}
     </div>
 
   </div>
