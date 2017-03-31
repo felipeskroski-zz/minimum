@@ -141,7 +141,8 @@ class User(db.Model):
 
 
 # blog stuff
-
+def blog_key(name='default'):
+    return db.Key.from_path('blogs', name)
 
 class Post(db.Model):
     subject = db.StringProperty(required=True)
@@ -176,13 +177,14 @@ class Post(db.Model):
 
 class BlogFront(BlogHandler):
     def get(self):
-        posts = greetings = Post.all().order('-created')
+        posts = Post.all().ancestor(blog_key())
         self.render('front.html', posts=posts, user=self.user)
 
 
 class PostPage(BlogHandler):
     def get(self, post_id):
-        post = Post.get_by_id(int(post_id))
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
 
         if not post:
             self.error(404)
@@ -205,7 +207,7 @@ class NewPost(BlogHandler):
         content = self.request.get('content')
         uid = str(self.user.key().id())
         if subject and content:
-            p = Post(subject=subject, content=content, author_id=uid)
+            p = Post(parent = blog_key(), subject=subject, content=content, author_id=uid)
             p.put()
             self.redirect('/blog/%s' % str(p.key().id()))
         else:
@@ -218,7 +220,8 @@ class NewPost(BlogHandler):
 class EditPost(BlogHandler):
     def get(self, post_id):
         if self.user:
-            post = Post.get_by_id(int(post_id))
+            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+            post = db.get(key)
             subject = post.subject
             content = post.content
             if(post.is_author(self.user)):
@@ -236,15 +239,16 @@ class EditPost(BlogHandler):
     def post(self, post_id):
         if not self.user:
             self.redirect('/blog')
-        p = Post.get_by_id(int(post_id))
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
         subject = self.request.get('subject')
         content = self.request.get('content')
-        if(p.is_author(self.user)):
+        if(post.is_author(self.user)):
             if subject and content:
-                p.subject = subject
-                p.content = content
-                p.put()
-                self.redirect('/blog/%s' % str(p.key().id()))
+                post.subject = subject
+                post.content = content
+                post.put()
+                self.redirect('/blog/%s' % str(post.key().id()))
             else:
                 error = "Add subject and content, please!"
                 self.render(
@@ -259,9 +263,10 @@ class EditPost(BlogHandler):
 
 class DeletePost(BlogHandler):
     def get(self, post_id):
-        p = Post.get_by_id(int(post_id))
-        if p.is_author(self.user):
-            p.delete()
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        if post.is_author(self.user):
+            post.delete()
             self.redirect('/blog')
         else:
             self.redirect('/blog')
@@ -272,18 +277,19 @@ class LikePost(BlogHandler):
         # if there's no user logged don't like
         if not self.user:
             self.redirect('/blog')
-        p = Post.get_by_id(int(post_id))
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
         # if user is the author it can't like
-        if(p.is_author(self.user)):
+        if(post.is_author(self.user)):
             self.redirect('/blog')
         ukey = self.user.key()
         # toggle like on/off
-        if ukey in p.likes:
-            p.likes.remove(ukey)
-            p.put()
+        if ukey in post.likes:
+            post.likes.remove(ukey)
+            post.put()
         else:
-            p.likes.append(ukey)
-            p.put()
+            post.likes.append(ukey)
+            post.put()
         self.redirect('/blog')
 
 
