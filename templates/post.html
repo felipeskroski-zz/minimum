@@ -1,26 +1,48 @@
-<div class="post">
+<div class="post" id={{p.key().id()}}>
   <div class="post-heading">
     <div class="post-title">
       <a href=/blog/{{p.key().id()}}>{{p.subject}}</a>
-
-    </div>
-    {% if is_author %}
-      <a href=/blog/edit/{{p.key().id()}}>edit</a>
-    {% else %}
-      {% if is_liked %}
-        <a href=/blog/like/{{p.key().id()}}>dislike</a>
+      {% if user %}
+        {% if is_author %}
+          <span class="like">
+            <img src="/static/liked.svg"/>{{p.likes|length}}
+          </span>
+        {% else %}
+          {% if is_liked %}
+            <span class="like">
+              <a href=/blog/like/{{p.key().id()}}>
+                <img src="/static/liked.svg"/>{{p.likes|length}}
+              </a>
+            </span>
+          {% else %}
+            <span class="like">
+              <a href=/blog/like/{{p.key().id()}}>
+                <img src="/static/like.svg" />{{p.likes|length}}
+              </a>
+            </span>
+          {% endif %}
+        {% endif %}
       {% else %}
-        <a href=/blog/like/{{p.key().id()}}>like</a>
+        <span class="like">
+          <img src="/static/liked.svg" height="15px"/>{{p.likes|length}}
+        </span>
       {% endif %}
-    {% endif %}
-      likes:{{p.likes|length}}
+    </div>
+
 
     <div class="post-date">
       {{p.created.strftime("%b %d, %Y")}}
     </div>
+
   </div>
 
   <div class="post-content">
     {{p._render_text | safe}}
   </div>
+  {% if is_author %}
+    <div class="form-inline">
+        <a href=/blog/edit/{{p.key().id()}} class="edit">edit</a>
+        <a href=/blog/delete/{{p.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
+    </div>
+  {% endif %}
 </div>

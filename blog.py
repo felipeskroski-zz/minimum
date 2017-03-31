@@ -14,7 +14,7 @@ template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 
 
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
-                               autoescape=True)
+                               autoescape=True, auto_reload=True)
 
 # creates the salt for security
 secret = 'secret-sauce'
@@ -53,6 +53,10 @@ class BlogHandler(webapp2.RequestHandler):
     def render_str(self, template, **params):
         params['user'] = self.user
         return render_str(template, **params)
+
+    def get_post_by_id(self, post_id):
+        key = db.Key.from_path('Post', int(post_id))
+        return db.get(key)
 
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
@@ -167,10 +171,10 @@ class Post(db.Model):
     def render(self, user=None):
         self._render_text = self.content.replace('\n', '<br>')
         if self.is_liked(user):
-            return render_str("post.html", p=self, is_liked=True)
+            return render_str("post.html", p=self, is_liked=True, user=True)
         if self.is_author(user):
-            return render_str("post.html", p=self, is_author=True)
-        return render_str("post.html", p=self)
+            return render_str("post.html", p=self, is_author=True, user=True)
+        return render_str("post.html", p=self, user=False)
 
 
 class BlogFront(BlogHandler):
@@ -258,6 +262,14 @@ class EditPost(BlogHandler):
                 "newpost.html", subject=subject,
                 content=content, error=error, title="Edit Post")
 
+class DeletePost(BlogHandler):
+    def get(self, post_id):
+        p = Post.get_by_id(int(post_id))
+        if p.is_author(self.user):
+            p.delete()
+            self.redirect('/blog')
+        else:
+            self.redirect('/blog')
 
 class LikePost(BlogHandler):
     def get(self, post_id):
@@ -388,6 +400,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/newpost', NewPost),
                                ('/blog/edit/([0-9]+)', EditPost),
                                ('/blog/like/([0-9]+)', LikePost),
+                               ('/blog/delete/([0-9]+)', DeletePost),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
