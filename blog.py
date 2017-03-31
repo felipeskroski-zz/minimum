@@ -170,7 +170,10 @@ class Post(db.Model):
     def render(self, user=None, error=None):
         self._render_text = self.content.replace('\n', '<br>')
         if self.is_author(user):
-            return render_str("post.html", p=self, is_author=True, is_logged=True)
+            return render_str(
+                "post.html", p=self, is_author=True,
+                is_logged=True, error=error)
+            
         if self.is_liked(user):
             return render_str(
                 "post.html", p=self,
@@ -282,8 +285,8 @@ class LikePost(BlogHandler):
         # if user is the author it can't like
         if(post.is_author(self.user)):
             error = "The author can't like its own post"
-            self.render(
-                "permalink.html", post=post, error=error, user=self.user)
+            self.render("permalink.html", post=post, error=error, user=self.user)
+            return
         ukey = self.user.key()
         # toggle like on/off
         if ukey in post.likes:
