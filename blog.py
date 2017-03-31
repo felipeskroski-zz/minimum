@@ -169,12 +169,12 @@ class Post(db.Model):
 
     def render(self, user=None, error=None):
         self._render_text = self.content.replace('\n', '<br>')
+        if self.is_author(user):
+            return render_str("post.html", p=self, is_author=True, is_logged=True)
         if self.is_liked(user):
             return render_str(
                 "post.html", p=self,
                 is_liked=True, is_logged=True, error=error)
-        if self.is_author(user):
-            return render_str("post.html", p=self, is_author=True, is_logged=True)
         if user:
             return render_str(
                 "post.html", p=self, is_logged=True, error=error)
@@ -184,7 +184,7 @@ class Post(db.Model):
 class BlogFront(BlogHandler):
     def get(self):
         # adds strong consistency support to make sure the data is the latest
-        posts = Post.all().ancestor(blog_key())
+        posts = Post.all().ancestor(blog_key()).order('-created')
         self.render('front.html', posts=posts, user=self.user)
 
 
@@ -270,18 +270,20 @@ class DeletePost(BlogHandler):
             self.redirect('/')
         else:
             error = "Only the author can delete the post"
-            self.render("delete.html", post=post, error=error, user=self.user)
+            self.render("permalink.html", post=post, error=error, user=self.user)
 
 
 class LikePost(BlogHandler):
     def get(self, post_id):
-        # if there's no user logged don't like
+        # if there's no user logged send back to home
         if not self.user:
             self.redirect('/')
         post = get_post_by_id(int(post_id))
         # if user is the author it can't like
         if(post.is_author(self.user)):
-            self.redirect('/')
+            error = "The author can't like its own post"
+            self.render(
+                "permalink.html", post=post, error=error, user=self.user)
         ukey = self.user.key()
         # toggle like on/off
         if ukey in post.likes:
