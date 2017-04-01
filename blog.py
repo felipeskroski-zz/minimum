@@ -76,10 +76,6 @@ class Base(webapp2.RequestHandler):
         params['user'] = self.user
         return render_str(template, **params)
 
-    def get_post_by_id(self, post_id):
-        key = db.Key.from_path('Post', int(post_id))
-        return db.get(key)
-
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
@@ -171,7 +167,9 @@ class Post(db.Model):
             return True
 
     def get_comments(self):
-        comments = Comment.all().ancestor(self)
+        pid = self.key().id()
+        print("pid %s"%pid)
+        comments = Comment.all().filter("post_id =", str(pid))
         return comments
 
     def render(self, user=None, error=None):
@@ -190,19 +188,16 @@ class Post(db.Model):
                 "post.html", p=self, is_logged=True, error=error)
         return render_str("post.html", p=self)
 
-
 class Comment(db.Model):
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
     author_id = db.StringProperty(required=True)
+    post_id = db.StringProperty(required=True)
     last_modified = db.DateTimeProperty(auto_now=True)
 
     @classmethod
     def by_id(cls, cid):
-        comment = Comment.get_by_id(int(cid))
-        if not comment:
-            self.error(404)
-            return
+        comment = Comment.get_by_id(int(cid), parent=blog_key())
         return comment
 
     def is_author(self, user):
@@ -244,10 +239,9 @@ class PostPage(Base):
         uid = str(self.user.key().id())
         p = Post.by_id(int(post_id))
         if content:
-            c = Comment(
-                parent=p.key(), content=content, author_id=uid)
+            c = Comment(parent=blog_key(), content=content, author_id=uid, post_id=post_id)
             c.put()
-            self.redirect('/%s' % str(p.key().id()))
+            self.redirect('/post/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
             self.render(
@@ -273,7 +267,7 @@ class NewPost(Base):
                 parent=blog_key(), subject=subject,
                 content=content, author_id=uid)
             p.put()
-            self.redirect('/%s' % str(p.key().id()))
+            self.redirect('/post/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
             self.render(
@@ -309,7 +303,7 @@ class EditPost(Base):
                 post.subject = subject
                 post.content = content
                 post.put()
-                self.redirect('/%s' % str(post.key().id()))
+                self.redirect('/post/%s' % str(post.key().id()))
             else:
                 error = "Add subject and content, please!"
                 self.render(
@@ -356,23 +350,22 @@ class LikePost(Base):
 
 # Comments
 class EditComment(Base):
-    def get(self, post_id):
+    def get(self, c_id):
         if not self.user:
-            self.redirect('/'+post_id)
-        comment = p.get_comments()
-        self.render("edit-comment.html", post=post,
-                    user=self.user, comments=comments)
-    def post(self, post_id):
+            self.redirect('/')
+        comment = Comment.get_by_id(int(c_id))
+        #is_author = comment.is_author(self.user)
+        self.render("edit-comment.html", comment=comment)
+    def post(self, c_id):
         if not self.user:
             self.redirect('/'+post_id)
         content = self.request.get('content')
         uid = str(self.user.key().id())
-        p = Post.by_id(int(post_id))
+        c = Comment.by_id(int(c_id))
         if content:
-            c = Comment(
-                parent=p.key(), content=content, author_id=uid)
+            c.content = content
             c.put()
-            self.redirect('/%s' % str(p.key().id()))
+            self.redirect('/post/%s' % str(c.post_id))
         else:
             error = "subject and content, please!"
             self.render(
@@ -471,7 +464,8 @@ app = webapp2.WSGIApplication([
                                ('/post/edit/([0-9]+)', EditPost),
                                ('/post/like/([0-9]+)', LikePost),
                                ('/post/delete/([0-9]+)', DeletePost),
-                               ('/comment/edit/([0-9]+)', DeletePost),
+                               ('/comment/edit/([0-9]+)', EditComment),
+                               ('/comment/delete/([0-9]+)', EditComment),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),

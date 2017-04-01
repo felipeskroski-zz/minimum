@@ -7,8 +7,8 @@
   </div>
   {% if is_author %}
     <div>
-        <a href=/edit/{{c.key().id()}} class="edit">edit</a>
-        <a href=/delete/{{c.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
+        <a href=/comment/edit/{{c.key().id()}} class="edit">edit</a>
+        <a href=/comment/delete/{{c.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
     </div>
   {% endif %}
   {% if error %}
