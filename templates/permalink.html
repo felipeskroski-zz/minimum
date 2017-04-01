@@ -2,4 +2,18 @@
 
 {% block content %}
   {{post.render(user,error) | safe}}
+  <div id="comments">
+    <h3>Comments</h3>
+    {% for c in post.get_comments() %}
+      {{ c.render(user) | safe }}
+    {% endfor %}
+    <form method="post" class="new-comment">
+      <label>
+        <h3>New comment</h3>
+        <textarea name="content" class="comment-post">{{content}}</textarea>
+      </label>
+      <div class="error">{{error}}</div>
+      <input type="submit">
+    </form>
+  </div>
 {% endblock %}

@@ -4,10 +4,11 @@ body {
     font-size: 14px;
     font-weight: 200;
 
-    width: 800px;
+    width: 720px;
     margin: 0 auto;
     padding: 10px;
     color: #333;
+    background-color: #fafafa;
 }
 
 .login-area {
@@ -63,6 +64,12 @@ textarea {
   font-size: 17px;
   font-family: 'Georgia', serif;
 }
+textarea.comment-post{
+  width: 400px;
+  height: 100px;
+  font-size: 17px;
+  font-family: 'Georgia', serif;
+}
 
 input[type=submit] {
   font-size: 24px;
@@ -81,11 +88,16 @@ input[type=submit] {
 .post + .post {
     margin-top: 15px;
 }
+.post{
+  position: relative;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  background-color: white;
+  padding: 20px;
+}
 
 .post-heading {
     position: relative;
-    padding-top: 10px;
-    margin-top: 10px;
 }
 
 .post-title {
@@ -128,6 +140,36 @@ input[type=submit] {
     font-family: Georgia, sans-serif;
     color: #666;
 }
+
+#comments{
+  margin: 20px;
+
+}
+
+.comment{
+  border-top: 1px solid #ccc;
+  padding-top: 20px;
+  position: relative;
+}
+
+.new-comment{
+  margin-top: 20px;
+  border-top: 1px solid #ccc;
+}
+.new-comment h3{
+  margin: 20px 0;
+  font-size: 18px;
+}
+.comment-content {
+    margin-top: 0px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    line-height: 1.5em;
+    font-family: Georgia, sans-serif;
+    color: #666;
+}
+
+
 #form{
   width: 400px;
   padding: 30px;
@@ -151,21 +193,16 @@ input[type=submit] {
 }
 .form-inline{
   display:inline-block;
+  position: absolute;
+  top: 20px;
+  right: 20px;
 }
-.form-inline button{
-  background-color: transparent;
-  border: none;
-  font-family: sans-serif;
-  font-size: 14px;
-  color: #666;
-  cursor: pointer;
-}
-.form-inline .edit{
+.edit{
   text-decoration: none;
   color: #666;
   border-radius: 2px;
   background-color: #eee;
-  padding: 3px 9px;
+  padding: 1px 6px;
   border: 1px solid #bbb;
 
 }

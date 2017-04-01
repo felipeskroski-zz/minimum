@@ -1,0 +1,17 @@
+<div class="comment">
+  <div class="post-date">
+    by:{{author}} - {{c.created.strftime("%d %b %Y")}}
+  </div>
+  <div class="comment-content">
+    {{c.content | safe}}
+  </div>
+  {% if is_author %}
+    <div>
+        <a href=/edit/{{c.key().id()}} class="edit">edit</a>
+        <a href=/delete/{{c.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
+    </div>
+  {% endif %}
+  {% if error %}
+    <p class="error">{{error}}</p>
+  {% endif %}
+</div>

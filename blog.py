@@ -7,22 +7,31 @@ from string import letters
 
 import webapp2
 import jinja2
-
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
-
-
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir),
                                autoescape=True, auto_reload=True)
 
-# creates the salt for security
+# creates the salt for security !change this!
 secret = 'secret-sauce'
 
 # Regular expressions for validation
 USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 PASS_RE = re.compile(r"^.{3,20}$")
+
+# Validations
+def valid_username(username):
+    return username and USER_RE.match(username)
+
+
+def valid_password(password):
+    return password and PASS_RE.match(password)
+
+
+def valid_email(email):
+    return not email or EMAIL_RE.match(email)
 
 
 def render_str(template, **params):
@@ -42,7 +51,23 @@ def check_secure_val(secure_val):
         return val
 
 
-class BlogHandler(webapp2.RequestHandler):
+def make_salt(length=5):
+    return ''.join(random.choice(letters) for x in xrange(length))
+
+
+def make_pw_hash(name, pw, salt=None):
+    if not salt:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (salt, h)
+
+
+def valid_pw(name, password, h):
+    salt = h.split(',')[0]
+    return h == make_pw_hash(name, password, salt)
+
+
+class Base(webapp2.RequestHandler):
     """Base blog class with useful generic methods"""
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
@@ -80,30 +105,8 @@ class BlogHandler(webapp2.RequestHandler):
         self.user = uid and User.by_id(int(uid))
 
 
-def render_post(response, post):
-    response.out.write('<b>' + post.subject + '</b><br>')
-    response.out.write(post.content)
-
-
-def make_salt(length=5):
-    return ''.join(random.choice(letters) for x in xrange(length))
-
-
-def make_pw_hash(name, pw, salt=None):
-    if not salt:
-        salt = make_salt()
-    h = hashlib.sha256(name + pw + salt).hexdigest()
-    return '%s,%s' % (salt, h)
-
-
-def valid_pw(name, password, h):
-    salt = h.split(',')[0]
-    return h == make_pw_hash(name, password, salt)
-
-
 def users_key(group='default'):
     return db.Key.from_path('users', group)
-
 
 
 class User(db.Model):
@@ -139,14 +142,6 @@ class User(db.Model):
 def blog_key(name='default'):
     return db.Key.from_path('blogs', name)
 
-def get_post_by_id(post_id):
-    key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-    post = db.get(key)
-    if not post:
-        self.error(404)
-        return
-    return post
-
 class Post(db.Model):
     subject = db.StringProperty(required=True)
     content = db.TextProperty(required=True)
@@ -154,6 +149,14 @@ class Post(db.Model):
     author_id = db.StringProperty(required=True)
     last_modified = db.DateTimeProperty(auto_now=True)
     likes = db.ListProperty(db.Key)
+
+    @classmethod
+    def by_id(cls, pid):
+        post = Post.get_by_id(int(pid), parent=blog_key())
+        if not post:
+            self.error(404)
+            return
+        return post
 
     def is_author(self, user):
         if not user:
@@ -166,6 +169,10 @@ class Post(db.Model):
             return None
         if user.key() in self.likes:
             return True
+
+    def get_comments(self):
+        comments = Comment.all().ancestor(self)
+        return comments
 
     def render(self, user=None, error=None):
         self._render_text = self.content.replace('\n', '<br>')
@@ -184,20 +191,60 @@ class Post(db.Model):
         return render_str("post.html", p=self)
 
 
-class BlogFront(BlogHandler):
+class Comment(db.Model):
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    author_id = db.StringProperty(required=True)
+
+    def is_author(self, user):
+        if not user:
+            return None
+        if str(user.key().id()) == str(self.author_id):
+            return True
+
+    def get_author(self):
+        author = User.by_id(int(self.author_id))
+        return author.name
+
+    def render(self, user=None, error=None):
+        author = self.get_author()
+        return render_str(
+            "comment.html", c=self,
+            author=author, is_author=self.is_author(user))
+
+
+class BlogFront(Base):
     def get(self):
         # adds strong consistency support to make sure the data is the latest
         posts = Post.all().ancestor(blog_key()).order('-created')
         self.render('front.html', posts=posts, user=self.user)
 
 
-class PostPage(BlogHandler):
+class PostPage(Base):
     def get(self, post_id):
-        post = get_post_by_id(int(post_id))
+        post = Post.by_id(int(post_id))
         self.render("permalink.html", post=post, user=self.user)
 
+    def post(self, post_id):
+        """Creates a new comment from the post """
+        if not self.user:
+            self.redirect('/'+post_id)
+        content = self.request.get('content')
+        uid = str(self.user.key().id())
+        p = Post.by_id(int(post_id))
+        if content:
+            c = Comment(
+                parent=p.key(), content=content, author_id=uid)
+            c.put()
+            self.redirect('/%s' % str(p.key().id()))
+        else:
+            error = "subject and content, please!"
+            self.render(
+                "permalink.html",
+                content=content, error=error, user=self.user)
 
-class NewPost(BlogHandler):
+
+class NewPost(Base):
     def get(self):
         if self.user:
             self.render("newpost.html", title="New Post")
@@ -223,10 +270,10 @@ class NewPost(BlogHandler):
                 content=content, error=error, title="New Post")
 
 
-class EditPost(BlogHandler):
+class EditPost(Base):
     def get(self, post_id):
         if self.user:
-            post = get_post_by_id(int(post_id))
+            post = Post.by_id(int(post_id))
             subject = post.subject
             content = post.content
             if(post.is_author(self.user)):
@@ -243,7 +290,7 @@ class EditPost(BlogHandler):
     def post(self, post_id):
         if not self.user:
             self.redirect('/')
-        post = get_post_by_id(int(post_id))
+        post = Post.by_id(int(post_id))
         subject = self.request.get('subject')
         content = self.request.get('content')
         if(post.is_author(self.user)):
@@ -262,9 +309,9 @@ class EditPost(BlogHandler):
             self.redirect('/')
 
 
-class DeletePost(BlogHandler):
+class DeletePost(Base):
     def get(self, post_id):
-        post = get_post_by_id(int(post_id))
+        post = Post.by_id(int(post_id))
         if post.is_author(self.user):
             post.delete()
             self.redirect('/')
@@ -274,12 +321,12 @@ class DeletePost(BlogHandler):
                 "permalink.html", post=post, error=error, user=self.user)
 
 
-class LikePost(BlogHandler):
+class LikePost(Base):
     def get(self, post_id):
         # if there's no user logged send back to home
         if not self.user:
             self.redirect('/')
-        post = get_post_by_id(int(post_id))
+        post = Post.by_id(int(post_id))
         # if user is the author it can't like
         if(post.is_author(self.user)):
             error = "The author can't like its own post"
@@ -296,19 +343,27 @@ class LikePost(BlogHandler):
         self.redirect('/')
 
 
-def valid_username(username):
-    return username and USER_RE.match(username)
+# Comments
+class NewComment(Base):
+    def post(self, post_id):
+        if not self.user:
+            self.redirect('/'+post_id)
+        content = self.request.get('content')
+        uid = str(self.user.key().id())
+        p = Post.by_id(int(post_id))
+        if content:
+            c = Comment(
+                parent=p.key(), content=content, author_id=uid)
+            c.put()
+            self.redirect('/%s' % str(p.key().id()))
+        else:
+            error = "subject and content, please!"
+            self.render(
+                "permalink.html",
+                content=content, error=error, user=self.user)
 
 
-def valid_password(password):
-    return password and PASS_RE.match(password)
-
-
-def valid_email(email):
-    return not email or EMAIL_RE.match(email)
-
-
-class Signup(BlogHandler):
+class Signup(Base):
     def get(self):
         self.render("signup-form.html")
 
@@ -361,7 +416,7 @@ class Register(Signup):
             self.redirect('/')
 
 
-class Login(BlogHandler):
+class Login(Base):
     def get(self):
         self.render('login-form.html')
 
@@ -378,13 +433,13 @@ class Login(BlogHandler):
             self.render('login-form.html', error=msg)
 
 
-class Logout(BlogHandler):
+class Logout(Base):
     def get(self):
         self.logout()
         self.redirect('/')
 
 
-class Welcome(BlogHandler):
+class Welcome(Base):
     def get(self):
         if self.user:
             self.render('welcome.html', username=self.user.name)
