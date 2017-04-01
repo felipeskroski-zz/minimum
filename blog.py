@@ -195,6 +195,15 @@ class Comment(db.Model):
     content = db.TextProperty(required=True)
     created = db.DateTimeProperty(auto_now_add=True)
     author_id = db.StringProperty(required=True)
+    last_modified = db.DateTimeProperty(auto_now=True)
+
+    @classmethod
+    def by_id(cls, cid):
+        comment = Comment.get_by_id(int(cid))
+        if not comment:
+            self.error(404)
+            return
+        return comment
 
     def is_author(self, user):
         if not user:
@@ -346,7 +355,13 @@ class LikePost(Base):
 
 
 # Comments
-class NewComment(Base):
+class EditComment(Base):
+    def get(self, post_id):
+        if not self.user:
+            self.redirect('/'+post_id)
+        comment = p.get_comments()
+        self.render("edit-comment.html", post=post,
+                    user=self.user, comments=comments)
     def post(self, post_id):
         if not self.user:
             self.redirect('/'+post_id)
@@ -451,11 +466,12 @@ class Welcome(Base):
 
 app = webapp2.WSGIApplication([
                                ('/?', BlogFront),
-                               ('/([0-9]+)', PostPage),
-                               ('/newpost', NewPost),
-                               ('/edit/([0-9]+)', EditPost),
-                               ('/like/([0-9]+)', LikePost),
-                               ('/delete/([0-9]+)', DeletePost),
+                               ('/post/([0-9]+)', PostPage),
+                               ('/post/new', NewPost),
+                               ('/post/edit/([0-9]+)', EditPost),
+                               ('/post/like/([0-9]+)', LikePost),
+                               ('/post/delete/([0-9]+)', DeletePost),
+                               ('/comment/edit/([0-9]+)', DeletePost),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),

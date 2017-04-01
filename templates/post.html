@@ -2,7 +2,7 @@
   <div class="post-heading">
     <div class="post-title">
 
-      <a href=/{{p.key().id()}}>{{p.subject}}</a>
+      <a href=/post/{{p.key().id()}}>{{p.subject}}</a>
 
       {% if is_logged %}
         {% if is_author %}
@@ -12,13 +12,13 @@
         {% else %}
           {% if is_liked %}
             <span class="like">
-              <a href=/like/{{p.key().id()}}>
+              <a href=/post/like/{{p.key().id()}}>
                 <img src="/static/liked.svg" />{{p.likes|length}}
               </a>
             </span>
           {% else %}
             <span class="like">
-              <a href=/like/{{p.key().id()}}>
+              <a href=/post/like/{{p.key().id()}}>
                 <img src="/static/like.svg" />{{p.likes|length}}
               </a>
             </span>
@@ -26,7 +26,7 @@
         {% endif %}
       {% else %}
         <span class="like">
-          <img src="/static/like-disabled.svg" />{{p.likes|length}}
+          <img src="/post/static/like-disabled.svg" />{{p.likes|length}}
         </span>
       {% endif %}
     </div>
@@ -43,8 +43,8 @@
   </div>
   {% if is_author %}
     <div class="form-inline">
-        <a href=/edit/{{p.key().id()}} class="edit">edit</a>
-        <a href=/delete/{{p.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
+        <a href=/post/edit/{{p.key().id()}} class="edit">edit</a>
+        <a href=/post/delete/{{p.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
     </div>
   {% endif %}
   {% if error %}
