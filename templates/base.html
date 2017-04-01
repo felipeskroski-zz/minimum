@@ -8,9 +8,11 @@
 </head>
 
 <body>
-  <a href="/" class="main-title">
-    Minimum
-  </a>
+  <div class="main-title">
+    <a href="/" class="home-link">Minimum</a>
+    <a href="/newpost" class="newpost-btn">New post</a>
+  </div>
+
 
   <div class="login-area">
     {% if user %}
@@ -20,7 +22,6 @@
       |
       <a class="login-link" href="/signup">Signup</a>
     {% endif %}
-    | <a class="login-link" href="/newpost">New post</a>
   </div>
 
   <div id="content">

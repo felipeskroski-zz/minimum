@@ -223,7 +223,9 @@ class BlogFront(Base):
 class PostPage(Base):
     def get(self, post_id):
         post = Post.by_id(int(post_id))
-        self.render("permalink.html", post=post, user=self.user)
+        comments = post.get_comments()
+        self.render("permalink.html", post=post,
+                    user=self.user, comments=comments)
 
     def post(self, post_id):
         """Creates a new comment from the post """
