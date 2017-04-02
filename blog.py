@@ -21,7 +21,9 @@ USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
 EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
 PASS_RE = re.compile(r"^.{3,20}$")
 
-# Validations
+# ------------------------------------------------
+# HELPERS
+# ------------------------------------------------
 def valid_username(username):
     return username and USER_RE.match(username)
 
@@ -66,6 +68,145 @@ def valid_pw(name, password, h):
     salt = h.split(',')[0]
     return h == make_pw_hash(name, password, salt)
 
+# ------------------------------------------------
+# MODELS
+# ------------------------------------------------
+def users_key(group='default'):
+    return db.Key.from_path('users', group)
+
+
+class User(db.Model):
+    """User model with key functions"""
+    name = db.StringProperty(required=True)
+    pw_hash = db.StringProperty(required=True)
+    email = db.StringProperty()
+
+    @classmethod
+    def by_id(cls, uid):
+        return User.get_by_id(uid, parent=users_key())
+
+    @classmethod
+    def by_name(cls, name):
+        u = User.all().filter('name =', name).get()
+        return u
+
+    @classmethod
+    def register(cls, name, pw, email=None):
+        pw_hash = make_pw_hash(name, pw)
+        return User(parent=users_key(),
+                    name=name,
+                    pw_hash=pw_hash,
+                    email=email)
+
+    @classmethod
+    def login(cls, name, pw):
+        u = cls.by_name(name)
+        if u and valid_pw(name, pw, u.pw_hash):
+            return u
+
+
+# Post Model
+def blog_key(name='default'):
+    return db.Key.from_path('blogs', name)
+
+class Post(db.Model):
+    """Blog post model"""
+    subject = db.StringProperty(required=True)
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    author_id = db.StringProperty(required=True)
+    last_modified = db.DateTimeProperty(auto_now=True)
+    # likes store a list of users who liked the post
+    likes = db.ListProperty(db.Key)
+
+    @classmethod
+    def by_id(cls, pid):
+        """Get post by id"""
+        post = Post.get_by_id(int(pid), parent=blog_key())
+        if not post:
+            self.error(404)
+            return
+        return post
+
+    def is_author(self, user):
+        """Checks if the user is the author of the post"""
+        if not user:
+            return None
+        if str(user.key().id()) == str(self.author_id):
+            return True
+        else:
+            return False
+
+    def is_liked(self, user):
+        """Checks if the post has been liked by the user"""
+        if not user:
+            return None
+        if user.key() in self.likes:
+            return True
+
+    def get_comments(self):
+        """Get comments from a post"""
+        pid = self.key().id()
+        comments = Comment.all().filter("post_id =", str(pid))
+        return comments
+
+    def render(self, user=None, error=None):
+        """Renders the post"""
+        self._render_text = self.content.replace('\n', '<br>')
+        if self.is_author(user):
+            return render_str(
+                "post.html", p=self, is_author=True,
+                is_logged=True, error=error)
+
+        if self.is_liked(user):
+            return render_str(
+                "post.html", p=self,
+                is_liked=True, is_logged=True, error=error)
+        if user:
+            return render_str(
+                "post.html", p=self, is_logged=True, error=error)
+        return render_str("post.html", p=self)
+
+# Comment model
+class Comment(db.Model):
+    """Comment model """
+    content = db.TextProperty(required=True)
+    created = db.DateTimeProperty(auto_now_add=True)
+    author_id = db.StringProperty(required=True)
+    post_id = db.StringProperty(required=True)
+    last_modified = db.DateTimeProperty(auto_now=True)
+
+    @classmethod
+    def by_id(cls, cid):
+        """Get comment by id"""
+        comment = Comment.get_by_id(int(cid), parent=blog_key())
+        return comment
+
+    def is_author(self, user):
+        """Checks if the user is the author of the comment"""
+        if not user:
+            return None
+        if str(user.key().id()) == str(self.author_id):
+            return True
+        else:
+            return False
+
+    def get_author(self):
+        """Gets the author of the comment"""
+        author = User.by_id(int(self.author_id))
+        return author.name
+
+    def render(self, user=None, error=None):
+        """Renders the comment"""
+        author = self.get_author()
+        return render_str(
+            "comment.html", c=self,
+            author=author, is_author=self.is_author(user))
+
+
+# ------------------------------------------------
+# CONTROLLERS
+# ------------------------------------------------
 
 class Base(webapp2.RequestHandler):
     """Base blog class with useful generic methods"""
@@ -101,130 +242,17 @@ class Base(webapp2.RequestHandler):
         self.user = uid and User.by_id(int(uid))
 
 
-def users_key(group='default'):
-    return db.Key.from_path('users', group)
-
-
-class User(db.Model):
-    name = db.StringProperty(required=True)
-    pw_hash = db.StringProperty(required=True)
-    email = db.StringProperty()
-
-    @classmethod
-    def by_id(cls, uid):
-        return User.get_by_id(uid, parent=users_key())
-
-    @classmethod
-    def by_name(cls, name):
-        u = User.all().filter('name =', name).get()
-        return u
-
-    @classmethod
-    def register(cls, name, pw, email=None):
-        pw_hash = make_pw_hash(name, pw)
-        return User(parent=users_key(),
-                    name=name,
-                    pw_hash=pw_hash,
-                    email=email)
-
-    @classmethod
-    def login(cls, name, pw):
-        u = cls.by_name(name)
-        if u and valid_pw(name, pw, u.pw_hash):
-            return u
-
-
-# blog stuff
-def blog_key(name='default'):
-    return db.Key.from_path('blogs', name)
-
-class Post(db.Model):
-    subject = db.StringProperty(required=True)
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    author_id = db.StringProperty(required=True)
-    last_modified = db.DateTimeProperty(auto_now=True)
-    likes = db.ListProperty(db.Key)
-
-    @classmethod
-    def by_id(cls, pid):
-        post = Post.get_by_id(int(pid), parent=blog_key())
-        if not post:
-            self.error(404)
-            return
-        return post
-
-    def is_author(self, user):
-        if not user:
-            return None
-        if str(user.key().id()) == str(self.author_id):
-            return True
-
-    def is_liked(self, user):
-        if not user:
-            return None
-        if user.key() in self.likes:
-            return True
-
-    def get_comments(self):
-        pid = self.key().id()
-        print("pid %s"%pid)
-        comments = Comment.all().filter("post_id =", str(pid))
-        return comments
-
-    def render(self, user=None, error=None):
-        self._render_text = self.content.replace('\n', '<br>')
-        if self.is_author(user):
-            return render_str(
-                "post.html", p=self, is_author=True,
-                is_logged=True, error=error)
-
-        if self.is_liked(user):
-            return render_str(
-                "post.html", p=self,
-                is_liked=True, is_logged=True, error=error)
-        if user:
-            return render_str(
-                "post.html", p=self, is_logged=True, error=error)
-        return render_str("post.html", p=self)
-
-class Comment(db.Model):
-    content = db.TextProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    author_id = db.StringProperty(required=True)
-    post_id = db.StringProperty(required=True)
-    last_modified = db.DateTimeProperty(auto_now=True)
-
-    @classmethod
-    def by_id(cls, cid):
-        comment = Comment.get_by_id(int(cid), parent=blog_key())
-        return comment
-
-    def is_author(self, user):
-        if not user:
-            return None
-        if str(user.key().id()) == str(self.author_id):
-            return True
-
-    def get_author(self):
-        author = User.by_id(int(self.author_id))
-        return author.name
-
-    def render(self, user=None, error=None):
-        author = self.get_author()
-        return render_str(
-            "comment.html", c=self,
-            author=author, is_author=self.is_author(user))
-
-
 class BlogFront(Base):
+    """All posts page"""
     def get(self):
-        # adds strong consistency support to make sure the data is the latest
+        # Ancestor query adds strong consistency support to make sure
+        # the data is the latest
         posts = Post.all().ancestor(blog_key()).order('-created')
         self.render('front.html', posts=posts, user=self.user)
 
 
 class PostPage(Base):
+    """Single post page"""
     def get(self, post_id):
         post = Post.by_id(int(post_id))
         comments = post.get_comments()
@@ -239,7 +267,8 @@ class PostPage(Base):
         uid = str(self.user.key().id())
         p = Post.by_id(int(post_id))
         if content:
-            c = Comment(parent=blog_key(), content=content, author_id=uid, post_id=post_id)
+            c = Comment(parent=blog_key(), content=content,
+                        author_id=uid, post_id=post_id)
             c.put()
             self.redirect('/post/%s' % str(p.key().id()))
         else:
@@ -250,17 +279,23 @@ class PostPage(Base):
 
 
 class NewPost(Base):
+    """Creates a new post"""
     def get(self):
+        # allowed to logged users only
         if self.user:
             self.render("newpost.html", title="New Post")
+        # if not logged send to login
         else:
             self.redirect("/login")
 
     def post(self):
+        # if not logged send to home
         if not self.user:
             self.redirect('/')
+        # get form fields
         subject = self.request.get('subject')
         content = self.request.get('content')
+        # get user id
         uid = str(self.user.key().id())
         if subject and content:
             p = Post(
@@ -279,6 +314,8 @@ class EditPost(Base):
     def get(self, post_id):
         if self.user:
             post = Post.by_id(int(post_id))
+            if not post:
+                self.redirect("/")
             subject = post.subject
             content = post.content
             if(post.is_author(self.user)):
@@ -335,7 +372,8 @@ class LikePost(Base):
         # if user is the author it can't like
         if(post.is_author(self.user)):
             error = "The author can't like its own post"
-            self.render("permalink.html", post=post, error=error, user=self.user)
+            self.render("permalink.html", post=post,
+                        error=error, user=self.user)
             return
         ukey = self.user.key()
         # toggle like on/off
@@ -352,27 +390,49 @@ class LikePost(Base):
 class EditComment(Base):
     def get(self, c_id):
         if not self.user:
+            self.redirect('/login')
+            return
+        comment = Comment.by_id(int(c_id))
+        if not comment:
             self.redirect('/')
-        comment = Comment.get_by_id(int(c_id))
-        #is_author = comment.is_author(self.user)
-        self.render("edit-comment.html", comment=comment)
+            return
+        is_author = comment.is_author(self.user)
+        if is_author:
+            self.render("edit-comment.html", comment=comment)
+        else:
+            post = Post.by_id(int(comment.post_id))
+            error = "Only the author can edit the comment"
+            comments = post.get_comments()
+            self.render("permalink.html", post=post, error=error,
+                        user=self.user, comments=comments)
+
     def post(self, c_id):
         if not self.user:
             self.redirect('/'+post_id)
         content = self.request.get('content')
-        uid = str(self.user.key().id())
         c = Comment.by_id(int(c_id))
         if content:
             c.content = content
             c.put()
             self.redirect('/post/%s' % str(c.post_id))
         else:
-            error = "subject and content, please!"
+            error = "Content, please!"
+            self.render("edit-comment.html", comment=comment, error=error)
+
+
+class DeleteComment(Base):
+    def get(self, c_id):
+        c = Comment.by_id(int(c_id))
+        post_id = c.post_id
+        if c.is_author(self.user):
+            c.delete()
+            self.redirect('/post/%s' % str(post_id))
+        else:
+            error = "Only the author can delete the post"
             self.render(
-                "permalink.html",
-                content=content, error=error, user=self.user)
+                "permalink.html", post=post, error=error, user=self.user)
 
-
+# authentication
 class Signup(Base):
     def get(self):
         self.render("signup-form.html")
@@ -465,7 +525,7 @@ app = webapp2.WSGIApplication([
                                ('/post/like/([0-9]+)', LikePost),
                                ('/post/delete/([0-9]+)', DeletePost),
                                ('/comment/edit/([0-9]+)', EditComment),
-                               ('/comment/delete/([0-9]+)', EditComment),
+                               ('/comment/delete/([0-9]+)', DeleteComment),
                                ('/signup', Register),
                                ('/login', Login),
                                ('/logout', Logout),
