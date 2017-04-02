@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-  {{post.render(user,error) | safe}}
+  <div class="error-msg">{{error}}</div>
+  {{post.render(user) | safe}}
   <div id="comments">
     {% if comments.count()>0 %}
       <h3 class="title">Comments</h3>
@@ -14,7 +15,7 @@
         <h3 class="title">New comment</h3>
         <textarea name="content" class="comment-post">{{content}}</textarea>
       </label>
-      <div class="error">{{error}}</div>
+
       <input type="submit">
     </form>
   </div>

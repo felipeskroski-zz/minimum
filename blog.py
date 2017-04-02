@@ -324,8 +324,10 @@ class EditPost(Base):
                     content=content, title="Edit Post")
             else:
                 error = "Sorry only the author can edit this post"
+                comments = post.get_comments()
                 self.render(
-                    "permalink.html", post=post, error=error, user=self.user)
+                    "permalink.html", post=post, error=error,
+                    user=self.user, comments=comments)
         else:
             self.redirect("/login")
 
@@ -359,8 +361,10 @@ class DeletePost(Base):
             self.redirect('/')
         else:
             error = "Only the author can delete the post"
+            comments = post.get_comments()
             self.render(
-                "permalink.html", post=post, error=error, user=self.user)
+                "permalink.html", post=post, error=error,
+                user=self.user, comments=comments)
 
 
 class LikePost(Base):
@@ -392,17 +396,17 @@ class EditComment(Base):
         if not self.user:
             self.redirect('/login')
             return
-        comment = Comment.by_id(int(c_id))
-        if not comment:
+        c = Comment.by_id(int(c_id))
+        if not c:
             self.redirect('/')
             return
-        is_author = comment.is_author(self.user)
+        is_author = c.is_author(self.user)
         if is_author:
-            self.render("edit-comment.html", comment=comment)
+            self.render("edit-comment.html", comment=c)
         else:
-            post = Post.by_id(int(comment.post_id))
-            error = "Only the author can edit the comment"
+            post = Post.by_id(int(c.post_id))
             comments = post.get_comments()
+            error = "Only the author can edit the comment"
             self.render("permalink.html", post=post, error=error,
                         user=self.user, comments=comments)
 
@@ -417,7 +421,7 @@ class EditComment(Base):
             self.redirect('/post/%s' % str(c.post_id))
         else:
             error = "Content, please!"
-            self.render("edit-comment.html", comment=comment, error=error)
+            self.render("edit-comment.html", comment=c, error=error)
 
 
 class DeleteComment(Base):
@@ -428,9 +432,11 @@ class DeleteComment(Base):
             c.delete()
             self.redirect('/post/%s' % str(post_id))
         else:
-            error = "Only the author can delete the post"
-            self.render(
-                "permalink.html", post=post, error=error, user=self.user)
+            post = Post.by_id(int(c.post_id))
+            comments = post.get_comments()
+            error = "Only the author can delete the comment"
+            self.render("permalink.html", post=post, error=error,
+                        user=self.user, comments=comments)
 
 # authentication
 class Signup(Base):
@@ -483,7 +489,7 @@ class Register(Signup):
             u.put()
 
             self.login(u)
-            self.redirect('/')
+            self.redirect('/welcome')
 
 
 class Login(Base):

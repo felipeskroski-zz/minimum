@@ -41,6 +41,14 @@ h2 {
 .error {
     color: red;
 }
+.error-msg{
+  padding: 20px;
+  color: #D30037;
+  border: 1px solid #D30037;
+  border-radius: 3px;
+  background: #F5DCE2;
+  margin: 20px 0;
+}
 
 label {
   display: block;
@@ -56,6 +64,8 @@ input[type=text] {
     font-size: 20px;
     padding: 2px;
     font-family: 'Rubik', sans-serif;
+    border-radius: 2px;
+    border: 1px solid #ccc;
 }
 
 textarea {
@@ -87,8 +97,19 @@ input[type=submit] {
 .home-link{
   color: #222;
   text-decoration: none;
+  font-weight: 600;
   font-family: 'Rubik', sans-serif;
   font-size: 32px;
+}
+.main-title p{
+    display: block;
+    font-size: 20px;
+    font-weight: 200;
+    margin: 30px 0;
+    font-family: 'Rubik', sans-serif;
+}
+.centered{
+  text-align: center;
 }
 .newpost-btn{
   color: white;
@@ -97,10 +118,16 @@ input[type=submit] {
   font-size: 14px;
   text-align: right;
   display: inline-block;
+  font-family: 'Rubik', sans-serif;
   border-radius: 3px;
   text-decoration: none;
   float: right;
   margin-top: 11px;
+}
+.large{
+  padding: 10px 24px;
+  font-size: 18px;
+  float: none;
 }
 
 .post + .post {
@@ -133,7 +160,6 @@ input[type=submit] {
     color: #999;
     display: inline-block;
     margin-top: 5px;
-    text-transform: uppercase;
     font-size: 12px;
     font-weight: 400;
     font-family: 'Rubik', sans-serif;
@@ -202,6 +228,7 @@ input[type=submit] {
   border: 1px solid #ccc;
   border-radius: 3px;
   margin: 0 auto;
+  background: white;
 }
 #form table{
   width: 100%;
@@ -216,6 +243,8 @@ input[type=submit] {
     padding: 6px;
     font-family: sans-serif;
     box-sizing: border-box;
+    border-radius: 2px;
+    border: 1px solid #ccc;
 }
 .form-inline{
   display:inline-block;
