@@ -1,12 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <link type="text/css" rel="stylesheet" href="/static/main.css" />
-
-  <title>Minimum</title>
-</head>
-
-<body>
+{% extends "base.html" %}
+{% block base %}
   <div class="main-title centered">
     <a href="/" class="home-link">Minimum</a>
   </div>
@@ -15,6 +8,4 @@
   {% block content %}
   {% endblock %}
   </div>
-</body>
-
-</html>
+{% endblock %}

@@ -3,31 +3,16 @@
 <head>
   <link href="https://fonts.googleapis.com/css?family=Rubik:300,500" rel="stylesheet">
   <link type="text/css" rel="stylesheet" href="/static/main.css" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/static//favicon-96x96.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static//favicon-16x16.png">
 
   <title>Minimum</title>
 </head>
 
 <body>
-  <div class="main-title">
-    <a href="/" class="home-link">Minimum</a>
-    <a href="/post/new" class="newpost-btn">New post</a>
-  </div>
-
-
-  <div class="login-area">
-    {% if user %}
-      {{user.name}} (<a class="login-link" href="/logout">Logout</a>)
-    {% else %}
-      <a class="login-link" href="/login">Login</a>
-      |
-      <a class="login-link" href="/signup">Signup</a>
-    {% endif %}
-  </div>
-
-  <div id="content">
-  {% block content %}
+  {% block base %}
   {% endblock %}
-  </div>
 </body>
 
 </html>

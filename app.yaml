@@ -9,6 +9,10 @@ handlers:
 - url: /.*
   script: blog.app
 
+- url: /favicon\.ico
+  static_files: static/favicon.ico
+  upload: static/favicon\.ico
+
 libraries:
 - name: jinja2
   version: latest
