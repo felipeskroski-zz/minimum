@@ -1,7 +1,4 @@
-## Python Flask Skeleton for Google App Engine
-
-![status: inactive](https://img.shields.io/badge/status-inactive-red.svg)
-
+## Minimum - a Python's minimalist blogging platform
 
 A skeleton for building Python applications on Google App Engine with the
 [Flask micro framework](http://flask.pocoo.org).
@@ -9,6 +6,10 @@ A skeleton for building Python applications on Google App Engine with the
 See our other [Google Cloud Platform github
 repos](https://github.com/GoogleCloudPlatform) for sample applications and
 scaffolding for other python frameworks and use cases.
+
+## Installation
+
+
 
 ## Run Locally
 1. Install the [App Engine Python SDK](https://developers.google.com/appengine/downloads).
