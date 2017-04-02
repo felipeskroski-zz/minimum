@@ -1,6 +1,10 @@
 import jinja2
 import os
 from google.appengine.ext import db
+from helpers import (
+    make_pw_hash,
+    valid_pw
+)
 
 # maps the template directory
 template_dir = os.path.join(os.path.dirname(__file__), '../templates')
