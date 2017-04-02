@@ -33,7 +33,7 @@
 
 
     <div class="post-date">
-      {{p.created.strftime("%d %b %Y")}}
+      by: {{p.get_author()}} - {{p.created.strftime("%d %b %Y")}}
     </div>
 
   </div>
@@ -45,6 +45,10 @@
     <div class="form-inline">
         <a href=/post/edit/{{p.key().id()}} class="edit">edit</a>
         <a href=/post/delete/{{p.key().id()}} class="edit" onclick="return confirm('Are you sure you want to delete?')" >delete</a>
+    </div>
+  {% else %}
+    <div class="form-inline">
+      <a href=/post/{{p.key().id()}} class="edit">New comment</a>
     </div>
   {% endif %}
   {% if error %}

@@ -99,6 +99,11 @@ class Post(db.Model):
         if user.key() in self.likes:
             return True
 
+    def get_author(self):
+        """Gets the author of the comment"""
+        author = User.by_id(int(self.author_id))
+        return author.name
+
     def get_comments(self):
         """Get comments from a post"""
         pid = self.key().id()
