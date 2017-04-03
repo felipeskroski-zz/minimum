@@ -71,8 +71,9 @@ class PostPage(Base):
 
     def post(self, post_id):
         """Creates a new comment from the post view"""
+        # if there's no user logged send to login
         if not self.user:
-            self.redirect('/'+post_id)
+            self.redirect('/login')
         content = self.request.get('content')
         uid = str(self.user.key().id())
         p = Post.by_id(int(post_id))
@@ -99,9 +100,9 @@ class NewPost(Base):
             self.redirect("/login")
 
     def post(self):
-        # if not logged send to home
+        # if not logged send to login
         if not self.user:
-            self.redirect('/')
+            self.redirect('/login')
         # get form fields
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -142,8 +143,9 @@ class EditPost(Base):
             self.redirect("/login")
 
     def post(self, post_id):
+        # if there's no user logged send to login
         if not self.user:
-            self.redirect('/')
+            self.redirect('/login')
         post = Post.by_id(int(post_id))
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -165,6 +167,9 @@ class EditPost(Base):
 
 class DeletePost(Base):
     def get(self, post_id):
+        # if there's no user logged send to login
+        if not self.user:
+            self.redirect('/login')
         post = Post.by_id(int(post_id))
         if post.is_author(self.user):
             post.delete()
@@ -179,9 +184,9 @@ class DeletePost(Base):
 
 class LikePost(Base):
     def get(self, post_id):
-        # if there's no user logged send back to home
+        # if there's no user logged send to login
         if not self.user:
-            self.redirect('/')
+            self.redirect('/login')
         post = Post.by_id(int(post_id))
         # if user is the author it can't like
         if(post.is_author(self.user)):
