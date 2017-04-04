@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block base %}
+  <div class="main-title">
+    <a href="/" class="home-link">Minimum</a>
+    <a href="/post/new" class="newpost-btn">New post</a>
+  </div>
+
+
+  <div class="login-area">
+    {% if user %}
+      {{user.name}} (<a class="login-link" href="/logout">Logout</a>)
+    {% else %}
+      <a class="login-link" href="/login">Login</a>
+      |
+      <a class="login-link" href="/signup">Signup</a>
+    {% endif %}
+  </div>
+
+  <div id="content">
+    {% block content %}
+    {% endblock %}
+  </div>
+{% endblock %}
