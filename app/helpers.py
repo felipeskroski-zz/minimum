@@ -5,37 +5,34 @@ import hmac
 from string import letters
 from config import config
 
-# Regular expressions for validation
-
-# accepts usernames between 3 and 20 characters
-USER_RE = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
-# accepts emails following x@x.x format
-EMAIL_RE = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
-# accepts passwords between 3 and 20 characters
-PASS_RE = re.compile(r"^.{3,20}$")
-
 # creates the salt for security !!change this!! on the config.py file
 secret = config['secret']
-
 
 # ------------------------------------------------
 # HELPERS
 # ------------------------------------------------
 
+
 # Validation helpers
 def valid_username(username):
     """Checks if username is valid"""
-    return username and USER_RE.match(username)
+    # accepts usernames between 3 and 20 characters
+    user_re = re.compile(r"^[a-zA-Z0-9_-]{3,20}$")
+    return username and user_re.match(username)
 
 
 def valid_password(password):
     """Checks if password is valid"""
-    return password and PASS_RE.match(password)
+    # accepts passwords between 3 and 20 characters
+    pass_re = re.compile(r"^.{3,20}$")
+    return password and pass_re.match(password)
 
 
 def valid_email(email):
     """Checks if email is valid"""
-    return not email or EMAIL_RE.match(email)
+    # accepts emails following x@x.x format
+    email_re = re.compile(r'^[\S]+@[\S]+\.[\S]+$')
+    return not email or email_re.match(email)
 
 
 # Password security helpers

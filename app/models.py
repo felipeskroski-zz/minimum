@@ -127,6 +127,7 @@ class Post(db.Model):
                 "post.html", p=self, is_logged=True, error=error)
         return render_str("post.html", p=self)
 
+
 # Comment model
 class Comment(db.Model):
     """Comment model"""

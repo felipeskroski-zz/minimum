@@ -15,6 +15,8 @@ from helpers import (
 # ------------------------------------------------
 # BASE VIEW CLASS
 # ------------------------------------------------
+
+
 class Base(webapp2.RequestHandler):
     """Base blog class with useful generic methods"""
     def write(self, *a, **kw):
@@ -49,6 +51,20 @@ class Base(webapp2.RequestHandler):
         self.user = uid and User.by_id(int(uid))
 
 
+# Login decorator
+def login_required(func):
+    """
+    A decorator to confirm a user is logged in or redirect as needed.
+    """
+    def login(self, *args, **kwargs):
+        # Redirect to login if user not logged in, else execute func.
+        if not self.user:
+            self.redirect("/login")
+        else:
+            func(self, *args, **kwargs)
+    return login
+
+
 # ------------------------------------------------
 # VIEWS
 # ------------------------------------------------
@@ -69,11 +85,9 @@ class PostPage(Base):
         self.render("permalink.html", post=post,
                     user=self.user, comments=comments)
 
+    @login_required
     def post(self, post_id):
         """Creates a new comment from the post view"""
-        # if there's no user logged send to login
-        if not self.user:
-            self.redirect('/login')
         content = self.request.get('content')
         uid = str(self.user.key().id())
         p = Post.by_id(int(post_id))
@@ -81,28 +95,22 @@ class PostPage(Base):
             c = Comment(parent=blog_key(), content=content,
                         author_id=uid, post_id=post_id)
             c.put()
-            self.redirect('/post/%s' % str(p.key().id()))
+            return self.redirect('/post/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
-            self.render(
+            return self.render(
                 "permalink.html",
                 content=content, error=error, user=self.user)
 
 
 class NewPost(Base):
     """Creates a new post"""
+    @login_required
     def get(self):
-        # allowed to logged users only
-        if self.user:
-            self.render("newpost.html", title="New Post")
-        # if not logged send to login
-        else:
-            self.redirect("/login")
+        return self.render("newpost.html", title="New Post")
 
+    @login_required
     def post(self):
-        # if not logged send to login
-        if not self.user:
-            self.redirect('/login')
         # get form fields
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -113,39 +121,35 @@ class NewPost(Base):
                 parent=blog_key(), subject=subject,
                 content=content, author_id=uid)
             p.put()
-            self.redirect('/post/%s' % str(p.key().id()))
+            return self.redirect('/post/%s' % str(p.key().id()))
         else:
             error = "subject and content, please!"
-            self.render(
+            return self.render(
                 "newpost.html", subject=subject,
                 content=content, error=error, title="New Post")
 
 
 class EditPost(Base):
+    @login_required
     def get(self, post_id):
-        if self.user:
-            post = Post.by_id(int(post_id))
-            if not post:
-                self.redirect("/")
-            subject = post.subject
-            content = post.content
-            if(post.is_author(self.user)):
-                self.render(
-                    "newpost.html", subject=subject,
-                    content=content, title="Edit Post")
-            else:
-                error = "Sorry only the author can edit this post"
-                comments = post.get_comments()
-                self.render(
-                    "permalink.html", post=post, error=error,
-                    user=self.user, comments=comments)
+        post = Post.by_id(int(post_id))
+        if not post:
+            return self.redirect("/")
+        subject = post.subject
+        content = post.content
+        if(post.is_author(self.user)):
+            return self.render(
+                "newpost.html", subject=subject,
+                content=content, title="Edit Post")
         else:
-            self.redirect("/login")
+            error = "Sorry only the author can edit this post"
+            comments = post.get_comments()
+            return self.render(
+                "permalink.html", post=post, error=error,
+                user=self.user, comments=comments)
 
+    @login_required
     def post(self, post_id):
-        # if there's no user logged send to login
-        if not self.user:
-            self.redirect('/login')
         post = Post.by_id(int(post_id))
         subject = self.request.get('subject')
         content = self.request.get('content')
@@ -154,22 +158,20 @@ class EditPost(Base):
                 post.subject = subject
                 post.content = content
                 post.put()
-                self.redirect('/post/%s' % str(post.key().id()))
+                return self.redirect('/post/%s' % str(post.key().id()))
             else:
                 error = "Add subject and content, please!"
-                self.render(
+                return self.render(
                     "newpost.html", subject=subject,
                     content=content, error=error, title="Edit Post")
         else:
             error = "And you're not the author"
-            self.redirect('/')
+            return self.redirect('/')
 
 
 class DeletePost(Base):
+    @login_required
     def get(self, post_id):
-        # if there's no user logged send to login
-        if not self.user:
-            self.redirect('/login')
         post = Post.by_id(int(post_id))
         if post.is_author(self.user):
             post.delete()
@@ -183,13 +185,11 @@ class DeletePost(Base):
 
 
 class LikePost(Base):
+    @login_required
     def get(self, post_id):
-        # if there's no user logged send to login
-        if not self.user:
-            self.redirect('/login')
         post = Post.by_id(int(post_id))
         # if user is the author it can't like
-        if(post.is_author(self.user)):
+        if post and post.is_author(self.user):
             error = "The author can't like its own post"
             self.render("permalink.html", post=post,
                         error=error, user=self.user)
@@ -207,14 +207,14 @@ class LikePost(Base):
 
 # Comments
 class EditComment(Base):
+    @login_required
     def get(self, c_id):
-        if not self.user:
-            self.redirect('/login')
-            return
         c = Comment.by_id(int(c_id))
+        if not c:
+            return self.redirect('/')
         is_author = c.is_author(self.user)
         if is_author:
-            self.render("edit-comment.html", comment=c)
+            return self.render("edit-comment.html", comment=c)
         else:
             post = Post.by_id(int(c.post_id))
             comments = post.get_comments()
@@ -222,18 +222,27 @@ class EditComment(Base):
             self.render("permalink.html", post=post, error=error,
                         user=self.user, comments=comments)
 
+    @login_required
     def post(self, c_id):
-        if not self.user:
-            self.redirect('/'+post_id)
         content = self.request.get('content')
         c = Comment.by_id(int(c_id))
-        if content:
-            c.content = content
-            c.put()
-            self.redirect('/post/%s' % str(c.post_id))
+        if not c:
+            return self.redirect('/')
+        is_author = c.is_author(self.user)
+        if is_author:
+            if content:
+                c.content = content
+                c.put()
+                return self.redirect('/post/%s' % str(c.post_id))
+            else:
+                error = "Content, please!"
+                return self.render("edit-comment.html", comment=c, error=error)
         else:
-            error = "Content, please!"
-            self.render("edit-comment.html", comment=c, error=error)
+            post = Post.by_id(int(c.post_id))
+            comments = post.get_comments()
+            error = "Only the author can edit the comment"
+            self.render("permalink.html", post=post, error=error,
+                        user=self.user, comments=comments)
 
 
 class DeleteComment(Base):
@@ -249,6 +258,7 @@ class DeleteComment(Base):
             error = "Only the author can delete the comment"
             self.render("permalink.html", post=post, error=error,
                         user=self.user, comments=comments)
+
 
 # authentication
 class Signup(Base):
