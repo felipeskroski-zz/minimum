@@ -27,6 +27,17 @@ See a demo at https://blog-p3.appspot.com
 
 Visit the application [http://localhost:8080](http://localhost:8080)
 
+## Commit and deploy
+1. commit to google repo
+```
+git push google master
+```
+
+2. deploy on google cloud  
+```
+gcloud app deploy
+```
+
 ### Feedback
 Star this repo if you found it useful. Use the github issue tracker to give
 feedback on this repo.
